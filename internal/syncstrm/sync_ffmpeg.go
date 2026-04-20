@@ -47,6 +47,7 @@ func (s *SyncStrm) RunFFmpegSnapshotTasks() {
 	dedupTasks := make([]ffmpegSnapshotTask, 0, len(tasks))
 	seen := make(map[string]bool)
 	for _, task := range tasks {
+		// poster/fanart 是目录级共享文件名，同一目录只处理一次即可。
 		key := filepath.Clean(task.OutputDir)
 		if seen[key] {
 			continue
