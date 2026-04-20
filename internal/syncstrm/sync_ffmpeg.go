@@ -70,6 +70,7 @@ func (s *SyncStrm) runFFmpegSnapshotTask(task ffmpegSnapshotTask) error {
 	if err != nil {
 		return err
 	}
+	// 目录级海报和背景图是共享命名，多个 STRM 共存时直接生成容易互相覆盖。
 	if !singleVideoDir {
 		s.Sync.Logger.Infof("目录 %s 下存在多个STRM文件，跳过自动生成 folder/poster/fanart，避免封面互相覆盖", task.OutputDir)
 		return nil
