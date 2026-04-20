@@ -194,10 +194,6 @@ func (sp *SyncPath) GetEnableFFmpegSnapshot() int {
 	return 0
 }
 
-func (sp *SyncPath) EnableFFmpegSnapshot() bool {
-	return sp.GetEnableFFmpegSnapshot() == 1
-}
-
 func (sp *SyncPath) GetFFmpegPosterPercent() float64 {
 	if sp.FFmpegPosterPercent < 0 || sp.FFmpegPosterPercent >= 100 {
 		return SettingsGlobal.GetFFmpegPosterPercent()
