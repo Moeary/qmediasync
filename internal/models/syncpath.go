@@ -67,20 +67,24 @@ type SyncPathScrapePath struct {
 
 func GetStrmSettingDefault() SettingStrm {
 	return SettingStrm{
-		StrmBaseUrl:    "",
-		Cron:           "",
-		MinVideoSize:   -1,
-		AddPath:        -1,
-		CheckMetaMtime: -1,
-		UploadMeta:     -1,
-		DownloadMeta:   -1,
-		DeleteDir:      -1,
-		VideoExtArr:    []string{},
-		MetaExtArr:     []string{},
-		ExcludeNameArr: []string{},
-		VideoExt:       "",
-		MetaExt:        "",
-		ExcludeName:    "",
+		StrmBaseUrl:           "",
+		Cron:                  "",
+		MinVideoSize:          -1,
+		AddPath:               -1,
+		CheckMetaMtime:        -1,
+		UploadMeta:            -1,
+		DownloadMeta:          -1,
+		DeleteDir:             -1,
+		EnableFFmpegSnapshot:  -1,
+		FFmpegPosterPercent:   -1,
+		FFmpegFanartPercent:   -1,
+		FFmpegCaptureDelayMs:  -1,
+		VideoExtArr:           []string{},
+		MetaExtArr:            []string{},
+		ExcludeNameArr:        []string{},
+		VideoExt:              "",
+		MetaExt:               "",
+		ExcludeName:           "",
 	}
 }
 
@@ -178,6 +182,41 @@ func (sp *SyncPath) GetCheckMetaMtime() int {
 		return SettingsGlobal.CheckMetaMtime
 	}
 	return sp.CheckMetaMtime
+}
+
+func (sp *SyncPath) GetEnableFFmpegSnapshot() int {
+	if sp.EnableFFmpegSnapshot == -1 {
+		return SettingsGlobal.GetEnableFFmpegSnapshot()
+	}
+	if sp.EnableFFmpegSnapshot > 0 {
+		return 1
+	}
+	return 0
+}
+
+func (sp *SyncPath) EnableFFmpegSnapshot() bool {
+	return sp.GetEnableFFmpegSnapshot() == 1
+}
+
+func (sp *SyncPath) GetFFmpegPosterPercent() float64 {
+	if sp.FFmpegPosterPercent < 0 || sp.FFmpegPosterPercent >= 100 {
+		return SettingsGlobal.GetFFmpegPosterPercent()
+	}
+	return sp.FFmpegPosterPercent
+}
+
+func (sp *SyncPath) GetFFmpegFanartPercent() float64 {
+	if sp.FFmpegFanartPercent < 0 || sp.FFmpegFanartPercent >= 100 {
+		return SettingsGlobal.GetFFmpegFanartPercent()
+	}
+	return sp.FFmpegFanartPercent
+}
+
+func (sp *SyncPath) GetFFmpegCaptureDelayMs() int {
+	if sp.FFmpegCaptureDelayMs < 0 {
+		return SettingsGlobal.GetFFmpegCaptureDelayMs()
+	}
+	return sp.FFmpegCaptureDelayMs
 }
 
 func (sp *SyncPath) GetCron() string {

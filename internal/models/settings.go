@@ -10,6 +10,12 @@ import (
 
 var V115Login bool
 
+const (
+	DefaultFFmpegPosterPercent  = 10.0
+	DefaultFFmpegFanartPercent  = 50.0
+	DefaultFFmpegCaptureDelayMs = 1500
+)
+
 type SettingThreads struct {
 	DownloadThreads    int `form:"download_threads" json:"download_threads" binding:"required" gorm:"default:1"`          // 下载QPS
 	FileDetailThreads  int `form:"file_detail_threads" json:"file_detail_threads" binding:"required" gorm:"default:1"`    // 115接口QPS
@@ -35,6 +41,10 @@ type SettingStrm struct {
 	DeleteDir      int      `form:"delete_dir" json:"delete_dir" gorm:"default: 1"`            // 是否删除目录，-1表示使用STRM设置，0表示不删除，1表示删除
 	AddPath        int      `form:"add_path" json:"add_path" gorm:"default: 2"`                // 是否添加路径，默认-1(使用settings的值), 1- 表示添加路径， 2-表示不添加路径
 	CheckMetaMtime int      `form:"check_meta_mtime" json:"check_meta_mtime" gorm:"default:0"` // 是否检查元数据文件修改时间，默认-1(使用settings的值), 0表示不检查，1表示检查
+	EnableFFmpegSnapshot int     `form:"enable_ffmpeg_snapshot" json:"enable_ffmpeg_snapshot" gorm:"default:0"`       // 是否启用STRM同步后FFmpeg自动截图，-1表示使用STRM设置，0表示关闭，1表示开启
+	FFmpegPosterPercent  float64 `form:"ffmpeg_poster_percent" json:"ffmpeg_poster_percent" gorm:"default:10"`        // 海报截帧时间点百分比，默认10
+	FFmpegFanartPercent  float64 `form:"ffmpeg_fanart_percent" json:"ffmpeg_fanart_percent" gorm:"default:50"`        // 背景图截帧时间点百分比，默认50
+	FFmpegCaptureDelayMs int     `form:"ffmpeg_capture_delay_ms" json:"ffmpeg_capture_delay_ms" gorm:"default:1500"`  // 连续截帧间隔，单位毫秒，默认1500
 }
 
 type Settings struct {
@@ -64,16 +74,30 @@ func (t SettingThreads) ToMap() map[string]any {
 
 func (s SettingStrm) ToMap(isDb bool, isSetting bool) map[string]any {
 	// helpers.AppLogger.Debugf("SettingStrm: %+v", s)
+	enableFFmpegSnapshot := s.EnableFFmpegSnapshot
+	ffmpegPosterPercent := s.FFmpegPosterPercent
+	ffmpegFanartPercent := s.FFmpegFanartPercent
+	ffmpegCaptureDelayMs := s.FFmpegCaptureDelayMs
+	if isSetting {
+		enableFFmpegSnapshot = s.GetEnableFFmpegSnapshot()
+		ffmpegPosterPercent = s.GetFFmpegPosterPercent()
+		ffmpegFanartPercent = s.GetFFmpegFanartPercent()
+		ffmpegCaptureDelayMs = s.GetFFmpegCaptureDelayMs()
+	}
 	dataMap := map[string]any{
-		"cron":             s.Cron,
-		"min_video_size":   s.MinVideoSize,
-		"delete_dir":       s.DeleteDir,
-		"upload_meta":      s.UploadMeta,
-		"download_meta":    s.DownloadMeta,
-		"strm_base_url":    s.StrmBaseUrl,
-		"add_path":         s.AddPath,
-		"check_meta_mtime": s.CheckMetaMtime,
-		"local_proxy":      s.LocalProxy,
+		"cron":                   s.Cron,
+		"min_video_size":         s.MinVideoSize,
+		"delete_dir":             s.DeleteDir,
+		"upload_meta":            s.UploadMeta,
+		"download_meta":          s.DownloadMeta,
+		"strm_base_url":          s.StrmBaseUrl,
+		"add_path":               s.AddPath,
+		"check_meta_mtime":       s.CheckMetaMtime,
+		"local_proxy":            s.LocalProxy,
+		"enable_ffmpeg_snapshot": enableFFmpegSnapshot,
+		"ffmpeg_poster_percent":  ffmpegPosterPercent,
+		"ffmpeg_fanart_percent":  ffmpegFanartPercent,
+		"ffmpeg_capture_delay_ms": ffmpegCaptureDelayMs,
 	}
 	if s.Cron == "" && isSetting {
 		dataMap["cron"] = helpers.GlobalConfig.Strm.Cron // 使用默认配置
@@ -110,6 +134,34 @@ func (s SettingStrm) ToMap(isDb bool, isSetting bool) map[string]any {
 		dataMap["video_ext"] = s.VideoExt
 	}
 	return dataMap
+}
+
+func (s SettingStrm) GetEnableFFmpegSnapshot() int {
+	if s.EnableFFmpegSnapshot > 0 {
+		return 1
+	}
+	return 0
+}
+
+func (s SettingStrm) GetFFmpegPosterPercent() float64 {
+	if s.FFmpegPosterPercent < 0 || s.FFmpegPosterPercent >= 100 {
+		return DefaultFFmpegPosterPercent
+	}
+	return s.FFmpegPosterPercent
+}
+
+func (s SettingStrm) GetFFmpegFanartPercent() float64 {
+	if s.FFmpegFanartPercent < 0 || s.FFmpegFanartPercent >= 100 {
+		return DefaultFFmpegFanartPercent
+	}
+	return s.FFmpegFanartPercent
+}
+
+func (s SettingStrm) GetFFmpegCaptureDelayMs() int {
+	if s.FFmpegCaptureDelayMs < 0 {
+		return DefaultFFmpegCaptureDelayMs
+	}
+	return s.FFmpegCaptureDelayMs
 }
 
 func (s SettingStrm) EncodeArr() *SettingStrm {

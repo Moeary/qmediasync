@@ -337,6 +337,10 @@ func GetStrmConfig(c *gin.Context) {
 // @Param exclude_name body []string false "排除的文件名"
 // @Param download_meta body integer false "是否下载元数据，1下载 0不下载"
 // @Param add_path body integer false "是否添加路径，1添加 2不添加"
+// @Param enable_ffmpeg_snapshot body integer false "是否启用同步后FFmpeg自动截图，1开启 0关闭"
+// @Param ffmpeg_poster_percent body number false "海报截帧百分比，默认10"
+// @Param ffmpeg_fanart_percent body number false "背景图截帧百分比，默认50"
+// @Param ffmpeg_capture_delay_ms body integer false "连续截帧间隔毫秒数，默认1500"
 // @Success 200 {object} object
 // @Failure 200 {object} object
 // @Router /setting/strm-config [post]
@@ -361,6 +365,22 @@ func UpdateStrmConfig(c *gin.Context) {
 	}
 	if req.MinVideoSize < 0 {
 		c.JSON(http.StatusBadRequest, APIResponse[any]{Code: BadRequest, Message: "最小视频大小必须大于等于0", Data: nil})
+		return
+	}
+	if req.EnableFFmpegSnapshot < 0 || req.EnableFFmpegSnapshot > 1 {
+		c.JSON(http.StatusBadRequest, APIResponse[any]{Code: BadRequest, Message: "FFmpeg 自动截图开关只能是0或1", Data: nil})
+		return
+	}
+	if req.FFmpegPosterPercent < 0 || req.FFmpegPosterPercent >= 100 {
+		c.JSON(http.StatusBadRequest, APIResponse[any]{Code: BadRequest, Message: "海报截帧百分比必须在0到100之间", Data: nil})
+		return
+	}
+	if req.FFmpegFanartPercent < 0 || req.FFmpegFanartPercent >= 100 {
+		c.JSON(http.StatusBadRequest, APIResponse[any]{Code: BadRequest, Message: "背景图截帧百分比必须在0到100之间", Data: nil})
+		return
+	}
+	if req.FFmpegCaptureDelayMs < 0 {
+		c.JSON(http.StatusBadRequest, APIResponse[any]{Code: BadRequest, Message: "FFmpeg 截帧间隔不能小于0", Data: nil})
 		return
 	}
 	// 检查cron是否正确，是否符合要求的CRON表达式

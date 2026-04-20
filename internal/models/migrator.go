@@ -18,7 +18,7 @@ type Migrator struct {
 	VersionCode int `json:"version_code"` // 版本号
 }
 
-var MaxVersionCode = 38
+var MaxVersionCode = 39
 var AllTables = []any{
 	BackupConfig{}, BackupRecord{},
 	ApiKey{}, Settings{}, Sync{}, User{}, Account{},
@@ -469,6 +469,18 @@ func Migrate() {
 		helpers.AppLogger.Info("已添加刮削整理失败通知类型")
 		migrator.UpdateVersionCode(db.Db)
 	}
+	if migrator.VersionCode == 39 {
+		// 为STRM全局设置和同步目录增加 FFmpeg 自动截图相关字段
+		db.Db.AutoMigrate(Settings{}, SyncPath{})
+		db.Db.Model(&Settings{}).Where("id >= ?", 1).Updates(map[string]any{
+			"enable_ffmpeg_snapshot": 0,
+			"ffmpeg_poster_percent":  DefaultFFmpegPosterPercent,
+			"ffmpeg_fanart_percent":  DefaultFFmpegFanartPercent,
+			"ffmpeg_capture_delay_ms": DefaultFFmpegCaptureDelayMs,
+		})
+		helpers.AppLogger.Info("已为STRM设置增加 FFmpeg 自动截图相关字段")
+		migrator.UpdateVersionCode(db.Db)
+	}
 	helpers.AppLogger.Infof("当前数据库版本 %d", migrator.VersionCode)
 }
 
@@ -536,14 +548,18 @@ func InitSettings() {
 		TelegramChatId:   "",
 		HttpProxy:        "",
 		SettingStrm: SettingStrm{
-			Cron:         helpers.GlobalConfig.Strm.Cron,
-			MetaExt:      string(metaExtStr),
-			VideoExt:     string(videoExtStr),
-			MinVideoSize: helpers.GlobalConfig.Strm.MinVideoSize,
-			DeleteDir:    0,
-			UploadMeta:   0,
-			DownloadMeta: 0,
-			StrmBaseUrl:  fmt.Sprintf("http://%s:12333", ipv4),
+			Cron:                  helpers.GlobalConfig.Strm.Cron,
+			MetaExt:               string(metaExtStr),
+			VideoExt:              string(videoExtStr),
+			MinVideoSize:          helpers.GlobalConfig.Strm.MinVideoSize,
+			DeleteDir:             0,
+			UploadMeta:            0,
+			DownloadMeta:          0,
+			EnableFFmpegSnapshot:  0,
+			FFmpegPosterPercent:   DefaultFFmpegPosterPercent,
+			FFmpegFanartPercent:   DefaultFFmpegFanartPercent,
+			FFmpegCaptureDelayMs:  DefaultFFmpegCaptureDelayMs,
+			StrmBaseUrl:           fmt.Sprintf("http://%s:12333", ipv4),
 		},
 		SettingThreads: SettingThreads{
 			DownloadThreads:    1,

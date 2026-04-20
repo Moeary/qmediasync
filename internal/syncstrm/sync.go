@@ -14,6 +14,7 @@ import (
 	"runtime"
 	"slices"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -70,6 +71,8 @@ type SyncStrm struct {
 	sync115 *Sync115
 
 	memSyncCache *MemorySyncCache // 同步缓存
+	ffmpegTaskMu sync.Mutex
+	ffmpegTasks  []ffmpegSnapshotTask
 }
 
 type pathQueueItem struct {
@@ -178,6 +181,10 @@ func NewSyncStrmFromSyncPath(syncPath *models.SyncPath) *SyncStrm {
 		DelEmptyLocalDir:      syncPath.GetDeleteDir() == 1,
 		CheckMetaMtime:        syncPath.GetCheckMetaMtime(),
 		StrmBaseUrl:           syncPath.GetStrmBaseUrl(),
+		EnableFFmpegSnapshot:  syncPath.GetEnableFFmpegSnapshot(),
+		FFmpegPosterPercent:   syncPath.GetFFmpegPosterPercent(),
+		FFmpegFanartPercent:   syncPath.GetFFmpegFanartPercent(),
+		FFmpegCaptureDelayMs:  syncPath.GetFFmpegCaptureDelayMs(),
 	}
 	if account.SourceType == models.SourceTypeOpenList {
 		// openlist只使用自定义的strm直连地址
@@ -199,6 +206,10 @@ func NewSyncStrmByPath(account *models.Account, sourcePath, sourcePathId string,
 		DelEmptyLocalDir:      models.SettingsGlobal.DeleteDir == 1,
 		CheckMetaMtime:        models.SettingsGlobal.CheckMetaMtime,
 		StrmBaseUrl:           models.SettingsGlobal.StrmBaseUrl,
+		EnableFFmpegSnapshot:  models.SettingsGlobal.GetEnableFFmpegSnapshot(),
+		FFmpegPosterPercent:   models.SettingsGlobal.GetFFmpegPosterPercent(),
+		FFmpegFanartPercent:   models.SettingsGlobal.GetFFmpegFanartPercent(),
+		FFmpegCaptureDelayMs:  models.SettingsGlobal.GetFFmpegCaptureDelayMs(),
 	}
 	return NewSyncStrm(account, 0, sourcePath, sourcePathId, targetPath, config, false, 0, isFile)
 }
@@ -300,6 +311,7 @@ func (s *SyncStrm) Start() error {
 			return err
 		}
 	}
+	s.RunFFmpegSnapshotTasks()
 	s.Sync.NewMeta = int(s.NewMeta)
 	s.Sync.NewStrm = int(s.NewStrm)
 	s.Sync.NewUpload = int(s.NewUpload)
